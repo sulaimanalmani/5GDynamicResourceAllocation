@@ -6,6 +6,20 @@ import math
 from scipy.interpolate import griddata
 
 class DataGenerator:
+    """
+    A class to generate and preprocess resource allocation data for VNFs.
+
+    This class handles loading, normalizing, and splitting the dataset into training, validation, 
+    and test sets. The class provides methods for sampling data, normalizing and denormalizing values, 
+    and creating 3D plots for data visualization.
+
+    Attributes:
+        input_dataset_file (str): Path to the input dataset file.
+        output_dataset_file (str): Path to the output dataset file.
+        vnf_type (str): Type of VNF, e.g., 'RAN', 'OvS', 'UPF', 'slice'.
+        norm_type (str): Type of normalization to apply, e.g., 'None', 'minmax', 'std'.
+        split (list): Ratios for splitting the dataset into train, validation, and test sets.
+    """
     def __init__(self, input_dataset_file, output_dataset_file, vnf_type='ran', norm_type='None', split=[0.8, 0.9, 1.0]):
         if input_dataset_file.endswith('.pkl'):
             self.input_dataset = pd.read_pickle(input_dataset_file)
@@ -16,6 +30,10 @@ class DataGenerator:
         # Convert throughput from bytes to Mbps
         self.input_dataset['throughput'] = self.input_dataset['throughput'] * 8 / (1e6) 
         self.output_dataset['throughput'] = self.output_dataset['throughput'] * 8 / (1e6)        
+
+        if vnf_type == 'UPF':
+            # Replace the 'res' column with a constant value of 200
+            self.input_dataset['res'] = 200
 
         # Drop 
         self.timestamp_arr = self.input_dataset['time_stamp_arr']
@@ -95,6 +113,21 @@ class DataGenerator:
 
     
     def get_norm_params(self, norm_type, feature_type, feature_idx):
+        """
+        Retrieve normalization parameters for a given feature.
+
+        Depending on the normalization type ('minmax' or 'std'), this function returns
+        the appropriate parameters (min and max values for 'minmax', mean and standard deviation for 'std')
+        for the specified feature index and type (input or output).
+
+        Args:
+            norm_type (str): The type of normalization ('minmax' or 'std').
+            feature_type (str): The type of feature ('input' or 'output').
+            feature_idx (int): The index of the feature for which to retrieve parameters.
+
+        Returns:
+            tuple: A tuple containing the normalization parameters.
+        """
         if norm_type == 'minmax':
             if feature_type == 'input':
                 return self.input_min_scalars[feature_idx], self.input_max_scalars[feature_idx]
@@ -107,6 +140,22 @@ class DataGenerator:
                 return self.output_mean_scalars[feature_idx], self.output_std_scalars[feature_idx]
 
     def normalize_val(self, data, norm_type, feature, feature_type):
+        """
+        Normalize a single feature value or a series of values.
+
+        This function applies the specified normalization technique ('minmax' or 'std') 
+        to a given feature, either by its name or index, for the specified feature type 
+        ('input' or 'output'). It returns the normalized value(s).
+
+        Args:
+            data (float or pd.Series): The data to be normalized.
+            norm_type (str): The type of normalization ('minmax' or 'std').
+            feature (str or int): The feature name or index to normalize.
+            feature_type (str): The type of feature ('input' or 'output').
+
+        Returns:
+            float or pd.Series: The normalized value(s).
+        """
         if isinstance(feature, str):
             if feature_type == 'input':
                 feature_idx = self.input_feature_list.index(feature)
@@ -133,6 +182,22 @@ class DataGenerator:
                 return 0
 
     def denormalize_val(self, data, norm_type, feature, feature_type):
+        """
+        Denormalize a single feature value or a series of values.
+
+        This function reverses the specified normalization technique ('minmax' or 'std') 
+        applied to a given feature, either by its name or index, for the specified feature type 
+        ('input' or 'output'). It returns the denormalized value(s).
+
+        Args:
+            data (float, pd.Series, or pd.DataFrame): The data to be denormalized.
+            norm_type (str): The type of normalization ('minmax' or 'std').
+            feature (str or int): The feature name or index to denormalize.
+            feature_type (str): The type of feature ('input' or 'output').
+
+        Returns:
+            float, pd.Series, or pd.DataFrame: The denormalized value(s).
+        """
         if isinstance(data, pd.DataFrame):
             data = data.copy()
         if isinstance(feature, str):
@@ -162,6 +227,22 @@ class DataGenerator:
                 return mean_val
 
     def normalize(self, data, feature_type='input', feature=None):
+        """
+        Normalize the dataset or a specific feature.
+
+        This function normalizes the entire dataset or a specific feature using the 
+        normalization type specified during the initialization of the DataGenerator class.
+        It supports both 'minmax' and 'std' normalization techniques.
+
+        Args:
+            data (pd.DataFrame or np.ndarray): The data to be normalized.
+            feature_type (str): The type of feature ('input' or 'output').
+            feature (str or int, optional): The feature name or index to normalize. 
+                                            If None, all features are normalized.
+
+        Returns:
+            pd.DataFrame or np.ndarray: The normalized data.
+        """
         if isinstance(data, pd.DataFrame):
             data = data.copy()       
             data = data.astype(float)  # Add this line to cast to float
@@ -176,6 +257,22 @@ class DataGenerator:
         return data  # Return the modified copy
 
     def denormalize(self, data, feature_type='input', feature=None):
+        """
+        Denormalize the dataset or a specific feature.
+
+        This function denormalizes the entire dataset or a specific feature using the 
+        normalization type specified during the initialization of the DataGenerator class.
+        It supports both 'minmax' and 'std' normalization techniques.
+
+        Args:
+            data (pd.DataFrame or np.ndarray): The data to be denormalized.
+            feature_type (str): The type of feature ('input' or 'output').
+            feature (str or int, optional): The feature name or index to denormalize. 
+                                            If None, all features are denormalized.
+
+        Returns:
+            pd.DataFrame or np.ndarray: The denormalized data.
+        """
         if isinstance(data, pd.DataFrame):
             data = data.copy()
         if feature is not None:
@@ -190,6 +287,19 @@ class DataGenerator:
         return data  # Return the modified copy
 
     def sample(self, typ='train', size=None):
+        """
+        Sample data from the dataset.
+
+        This function returns random samples from the specified dataset type (train, val, or test).
+        If the size is not specified or exceeds the dataset length, it returns the entire dataset.
+
+        Args:
+            typ (str): The type of dataset to sample from ('train', 'val', 'test', or 'test_all').
+            size (int, optional): The number of samples to return. If None, returns the entire dataset.
+
+        Returns:
+            tuple: A tuple containing the sampled input and output data.
+        """
         # Return random samples from the dataset of size 'size' but use same idxs
         if typ == 'train':
             if size is None or size > len(self.train_input):
@@ -210,6 +320,21 @@ class DataGenerator:
             raise ValueError(f"Invalid type: {typ}")
 
     def create_3d_plot(self, res=None, input_throughput=None, output_throughput=None):
+        """
+        Create a 3D plot for data visualization.
+
+        This function generates a 3D surface plot to visualize the relationship between 
+        resource allocation, input throughput, and output throughput. It uses interpolation 
+        to create a smooth surface.
+
+        Args:
+            res (pd.Series, optional): Resource allocation data. Defaults to training data if None.
+            input_throughput (pd.Series, optional): Input throughput data. Defaults to training data if None.
+            output_throughput (pd.Series, optional): Output throughput data. Defaults to training data if None.
+
+        Returns:
+            None
+        """
         pred = 1
         # Creating a DataFrame to simulate grouped statistics
         if res is None:
@@ -264,7 +389,24 @@ class DataGenerator:
         
         plt.show()
 
+        
+
     def get_nearest_neighbor(self, input_throughput, resource_allocation):
+        """
+        Find the nearest neighbor in the dataset.
+
+        This function identifies the nearest neighbor in the training dataset based on 
+        input throughput and resource allocation. It returns a dictionary with the nearest 
+        neighbor's input throughput, resource allocation, output throughput, time in system, 
+        and packet loss.
+
+        Args:
+            input_throughput (float): The input throughput to find the nearest neighbor for.
+            resource_allocation (float): The resource allocation to find the nearest neighbor for.
+
+        Returns:
+            dict or None: A dictionary with the nearest neighbor's data or None if no neighbor is found.
+        """
         if input_throughput > self.train_input['throughput'].max() or input_throughput < self.train_input['throughput'].min() \
             or resource_allocation > self.train_input['res'].max() or resource_allocation < self.train_input['res'].min():
             # print(f"Input throughput must be between {self.train_input['throughput'].min()} and {self.train_input['throughput'].max()}")

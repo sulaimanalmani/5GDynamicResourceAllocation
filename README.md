@@ -38,7 +38,7 @@ http://127.0.0.1:8000/?token=<token>
 
 For more information on JupyterLab, you can refer to the [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/).
 
-## Access the jupyter notebooks
+## Accessing the jupyter notebooks
 
 We have devided the session into three notebooks:
 
@@ -46,8 +46,16 @@ We have devided the session into three notebooks:
 2. P2-WorkshopNotebook.ipynb: In this notebook, we will be using the datasets to train VNF models using the vNetRunner framework. Subsequently we will be using the trained VNF models to compose end-to-end slice models.
 3. P3-WorkshopNotebook.ipynb: In this notebook, we will be using the [MicroOpt](https://arxiv.org/abs/2407.18342) framework to perform dynamic resource scaling.
 
-Please open each of the notebook in order in the JupyterLab (as shown below) interface and follow the instructions in the notebook to complete the exercises.
+Please read the tips section below, and then proceed to open each of the notebook in order in the JupyterLab (as shown below) interface and follow the instructions in the notebook to complete the exercises.
 
 <p align="center" style="background-color: white;">
   <img src="images/jupyter_interface.png" alt="jupyter_interface" width="400"/>
 </p>
+
+## Tips and Tricks
+
+> Press the Run button in the toolbar or use `Shift + Enter` to execute the code in a cell.
+
+> Double-clicking a markdown cell will reveal its code. Press `Shift + Enter` to execute the code in the cell and display the rendered markdown again.
+
+> Use the sidebar on the left to navigate the file structure and explore the dataset.

@@ -5,3 +5,4 @@ scikit-learn
 matplotlib
 jupyterlab
 scipy
+plotly
