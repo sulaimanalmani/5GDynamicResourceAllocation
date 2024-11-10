@@ -407,14 +407,12 @@ class DataGenerator:
         Returns:
             dict or None: A dictionary with the nearest neighbor's data or None if no neighbor is found.
         """
-        if input_throughput > self.train_input['throughput'].max() or input_throughput < self.train_input['throughput'].min() \
-            or resource_allocation > self.train_input['res'].max() or resource_allocation < self.train_input['res'].min():
-            # print(f"Input throughput must be between {self.train_input['throughput'].min()} and {self.train_input['throughput'].max()}")
-            # print(f"Resource allocation must be between {self.train_input['res'].min()} and {self.train_input['res'].max()}")
+        if input_throughput > self.input_dataset['throughput'].max() or input_throughput < self.input_dataset['throughput'].min() \
+            or resource_allocation > self.input_dataset['res'].max() or resource_allocation < self.input_dataset['res'].min():
             return None
        
-        input_data = self.train_input.copy()
-        output_data = self.train_output.copy()
+        input_data = self.input_dataset.copy()
+        output_data = self.output_dataset.copy()
         merged_data = pd.merge(input_data, output_data, left_index=True, right_index=True, suffixes=('_input', '_output'))
         # Aggregate by input throughput (of intervals of 5) and mean the other features
         merged_data['throughput_input'] = merged_data['throughput_input'].apply(lambda x: round(x/5)*5)
@@ -427,13 +425,16 @@ class DataGenerator:
         filter_data = filter_data[filter_data['throughput_input'] >= input_throughput]
         filter_data = filter_data.sort_values(by=['throughput_input'], ascending=[True])
         if len(filter_data) == 0:
-            # print(f"No data found for input throughput {input_throughput} and resource allocation {resource_allocation}")
-            # print(f"Please try a different input throughput and resource allocation")
             return None
         nearest_neighbor = filter_data.iloc[0]
+        
         return_df = {
+            'packet_size': float(nearest_neighbor['packet_size_input']),
+            'packet_rate': float(nearest_neighbor['packet_rate_input']),
             'input_throughput': float(nearest_neighbor['throughput_input']),
-            'resource_allocation': float(nearest_neighbor['res']),
+            'inter_arrival_time_mean': float(nearest_neighbor['inter_arrival_time_mean_input']),
+            'inter_arrival_time_std': float(nearest_neighbor['inter_arrival_time_std_input']),
+            'res': float(nearest_neighbor['res']),
             'output_throughput': min(float(nearest_neighbor['throughput_output']), float(nearest_neighbor['throughput_input'])),
             'time_in_sys': float(nearest_neighbor['time_in_sys']) * 1e3,
             'packet_loss': max(0, (float(nearest_neighbor['throughput_input'] - float(nearest_neighbor['throughput_output'])) / float(nearest_neighbor['throughput_input'])) * 100)

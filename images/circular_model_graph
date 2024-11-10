@@ -1,0 +1,12 @@
+digraph {
+	node [color=lightblue fontname=Arial fontsize=12 shape=circle style=filled]
+	Input [label="Input Layer"]
+	L1 [label="Hidden Layer 1 (16)
+ReLU"]
+	L2 [label="Hidden Layer 2 (8)
+ReLU"]
+	L3 [label="Output Layer (4)"]
+	Input -> L1
+	L1 -> L2
+	L2 -> Output
+}
