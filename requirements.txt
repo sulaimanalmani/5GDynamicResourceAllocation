@@ -6,3 +6,4 @@ matplotlib
 jupyterlab
 scipy
 plotly
+ipywidgets

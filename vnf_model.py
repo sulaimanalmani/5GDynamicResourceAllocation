@@ -11,42 +11,70 @@ import torch.nn.functional as F
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class VNF_Model(nn.Module):
-    def __init__(self, vnf_typ, n_inputs, n_hidden, n_outputs, feature_model=False):
+    """
+    A PyTorch neural network model for Throughput / Packet loss prediction.
+
+    This model is designed to predict both the mean and standard deviation of the output,
+    allowing for regression with uncertainty estimation. It consists of an input layer,
+    multiple hidden layers, and separate output layers for mean and standard deviation.
+
+    Args:
+        vnf_typ (str): The type of VNF being modeled (e.g., 'upf', 'ovs', 'ran')
+        n_inputs (int): The number of input features.
+        n_hidden (list of int): A list specifying the number of neurons in each hidden layer.
+        n_outputs (int): The number of output features.
+
+    Methods:
+        forward(x): Performs a forward pass through the network.
+        log_prob_loss(x, y): Computes the negative log probability loss.
+        load_weights(path): Loads model weights from a specified path.
+        predict(x, mean_val=True): Makes predictions using the model.
+        train(data_gen, batch_size=128, num_epochs=5000, learning_rate=0.0001, decay=0.00, save_model=True, save_loss=True):
+            Trains the model using the provided data generator.
+        save_loss(): Saves the training, validation, and test loss history to CSV files.
+        save_model(): Saves the model's state dictionary to a file.
+    """
+
+    def __init__(self, vnf_typ, n_inputs, n_hidden, n_outputs):
         super().__init__()
         
-        # Basic model properties
+        # Basic model properties ####################################################################################
         self.vnf_typ = vnf_typ
         self.n_inputs = n_inputs
         self.n_hidden = n_hidden
         self.n_outputs = n_outputs
-        self.feature_model = feature_model
-        self.loss = self.log_prob_loss  # Default loss function
+        self.loss = self.log_prob_loss  # Negative log probability loss function
 
-        # Model Layers
-        self.bn = nn.BatchNorm1d(n_inputs)  # Batch Normalization Layer
+        # Model Architecture ####################################################################################
         
         # Input Layer
         self.fc = nn.Linear(n_inputs-1, n_hidden[0])
         
-        # Hidden Layers
+        # Hidden Layers (multiple layers based on n_hidden list)
         self.fc_hidden = nn.ModuleList(
             [nn.Linear(n_hidden[i], n_hidden[i+1]) for i in range(len(n_hidden)-1)]
-        )  # Multiple hidden layers based on n_hidden list
+        )
         
         # Output Layers: Mean and Standard Deviation for regression with uncertainty
         self.fc_mean = nn.Linear(n_hidden[-1], n_outputs)  # Output layer for mean prediction
         self.fc_std = nn.Linear(n_hidden[-1], n_outputs)   # Output layer for standard deviation
 
-        # Additional Batch Normalization Layers for hidden layers
-        self.bn_hidden = nn.ModuleList([nn.BatchNorm1d(n) for n in n_hidden])
-
-        # Loss tracking
+        # Loss tracking ############################################################################################
         self.loss_array = []
         self.val_loss_array = []
         self.test_loss_array = []
 
     def forward(self, x):
-        # Drop irrelevant column (e.g., packet size) from input
+        """
+        Forward pass through the network.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            tuple: Mean and standard deviation predictions.
+        """
+        # # Drop irrelevant column (e.g., packet size) from input
         x = x[:, 1:]
         
         # Pass through Input Layer
@@ -60,11 +88,22 @@ class VNF_Model(nn.Module):
         
         # Output mean and std predictions
         mean = self.fc_mean(x)  # Mean output
-        std = nn.Softplus()(self.fc_std(x))  # Positive std output
+        log_std = self.fc_std(x) # Positive std output
+        std = torch.exp(log_std)
         return mean, std  # Return mean and std for uncertainty estimation
 
-    # Negative Log Probability Loss Function
+    # Negative Log Probability Loss Function #####################################################################
     def log_prob_loss(self, x, y):
+        """
+        Calculate the negative log probability loss.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            y (torch.Tensor): Target tensor.
+
+        Returns:
+            torch.Tensor: Computed loss.
+        """
         mean, std = self.forward(x)
         normal_dist = torch.distributions.Normal(mean, std)
         loss = -normal_dist.log_prob(y).mean()  # Negative log likelihood loss
@@ -72,10 +111,26 @@ class VNF_Model(nn.Module):
 
     # Load model weights from a given path
     def load_weights(self, path):
-        self.load_state_dict(torch.load(path, map_location=device))
+        """
+        Load model weights from a specified path.
+
+        Args:
+            path (str): Path to the weights file.
+        """
+        self.load_state_dict(torch.load(path, map_location=device, weights_only=True))
 
     # Prediction function, optionally returns mean or samples from the distribution
     def predict(self, x, mean_val=True):
+        """
+        Make predictions using the model.
+
+        Args:
+            x (np.ndarray or pd.DataFrame or torch.Tensor): Input data.
+            mean_val (bool): If True, return mean predictions; otherwise, sample from the distribution.
+
+        Returns:
+            torch.Tensor: Predicted values.
+        """
         # Convert input to tensor if in ndarray or DataFrame format
         if isinstance(x, np.ndarray):
             x = torch.tensor(x, dtype=torch.float)
@@ -91,9 +146,23 @@ class VNF_Model(nn.Module):
             dist = torch.distributions.Normal(mean, std)  # Sample from distribution
             return dist.rsample()
 
-    # Training function
+    # Training Loop ##############################################################################################
     def train(self, data_gen, batch_size=128, num_epochs=5000, learning_rate=0.0001, decay=0.00, save_model=True, save_loss=True):
-        
+        """
+        Train the model using the provided data generator.
+
+        Args:
+            data_gen (DataGenerator): Data generator for sampling training, validation, and test data.
+            batch_size (int): Number of samples per batch.
+            num_epochs (int): Number of training epochs.
+            learning_rate (float): Learning rate for the optimizer.
+            decay (float): Weight decay for the optimizer.
+            save_model (bool): If True, save the model periodically.
+            save_loss (bool): If True, save the loss history.
+
+        Returns:
+            tuple: Training and validation loss arrays.
+        """
         self.to(device)  # Move model to GPU if available
         optimizer = optim.Adam(self.parameters(), lr=learning_rate, weight_decay=decay)
         
@@ -156,6 +225,9 @@ class VNF_Model(nn.Module):
         return self.loss_array, self.val_loss_array
 
     def save_loss(self):
+        """
+        Save the training, validation, and test loss history to CSV files.
+        """
         np.savetxt("./data/" + self.vnf_typ + '_loss.csv', self.loss_array, delimiter=',')
         np.savetxt("./data/" + self.vnf_typ + '_val_loss.csv', self.val_loss_array, delimiter=',')
         # save test loss in ./data/
@@ -163,6 +235,19 @@ class VNF_Model(nn.Module):
             np.savetxt("./data/" + self.vnf_typ + '_test_loss.csv', self.test_loss_array, delimiter=',')
 
     def save_model(self):
+        """
+        Save the model's state dictionary to a file.
+        """
         if not os.path.exists("./data/" + self.vnf_typ):
             os.makedirs("./data/" + self.vnf_typ)
         torch.save(self.state_dict(), "./data/" + self.vnf_typ + '/model.pth')
+
+    def plot_loss(self):
+        plt.plot(self.loss_array, label='Train Loss')
+        plt.plot(self.val_loss_array, label='Val Loss')
+        plt.legend()
+        plt.title('Train and Val Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Log Prob. Loss')
+        plt.grid()
+        plt.show()

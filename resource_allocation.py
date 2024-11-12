@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
+import math
 torch.autograd.set_detect_anomaly(True)
 
 if torch.cuda.is_available():
@@ -27,6 +28,12 @@ class ResAllocModel(nn.Module):
         return x
 
 def MicroOpt(slice_model, input_throughput, qos_thresh, lr=0.001, init_weights=None, verbose=0):
+    """
+    Micro-optimization for resource allocation.
+    """
+    res_alloc_init = get_gridsearch_solution(slice_model, input_throughput, qos_thresh)
+    res_alloc_init = np.array(res_alloc_init)
+    print(f"Init weights: {res_alloc_init}")
     epochs = 50
     max_time = 10
     max_iter = 10
@@ -42,6 +49,8 @@ def MicroOpt(slice_model, input_throughput, qos_thresh, lr=0.001, init_weights=N
     iters_since_optim = 0
 
     start_time = time.time()
+    # Do inverse sigmoid on the res_alloc_init
+    init_weights = torch.tensor(np.log(res_alloc_init/(1-res_alloc_init+1e-6)))
 
     while True:
         losses = []
@@ -114,3 +123,18 @@ def MicroOpt(slice_model, input_throughput, qos_thresh, lr=0.001, init_weights=N
                 break
 
     return feasible_res_alloc, feasible_qos, UB, LB, time.time() - start_time
+
+def get_gridsearch_solution(slice_model, input_throughput, qos_thresh):
+    """
+    Get the gridsearch solution for initial resource allocation.
+    """
+    min_res_alloc_sum = math.inf
+    res_alloc = None
+    for res_alloc_ovs in np.arange(0, 1, 0.1):
+        for res_alloc_ran in np.arange(0, 1, 0.1):
+            res_alloc = torch.tensor([1, res_alloc_ovs, res_alloc_ran])
+            qos = slice_model.predict_throughput(res_alloc, input_throughput, differentiable=1)
+            if qos > qos_thresh and res_alloc.sum() < min_res_alloc_sum:
+                min_res_alloc_sum = res_alloc.sum()
+                min_res_alloc = res_alloc
+    return min_res_alloc

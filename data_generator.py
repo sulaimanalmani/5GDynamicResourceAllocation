@@ -391,7 +391,7 @@ class DataGenerator:
 
         
 
-    def get_nearest_neighbor(self, input_throughput, resource_allocation):
+    def get_nearest_neighbor(self, input_throughput, resource_allocation=None):
         """
         Find the nearest neighbor in the dataset.
 
@@ -402,13 +402,10 @@ class DataGenerator:
 
         Args:
             input_throughput (float): The input throughput to find the nearest neighbor for.
-            resource_allocation (float): The resource allocation to find the nearest neighbor for.
-
         Returns:
             dict or None: A dictionary with the nearest neighbor's data or None if no neighbor is found.
         """
-        if input_throughput > self.input_dataset['throughput'].max() or input_throughput < self.input_dataset['throughput'].min() \
-            or resource_allocation > self.input_dataset['res'].max() or resource_allocation < self.input_dataset['res'].min():
+        if input_throughput > self.input_dataset['throughput'].max() or input_throughput < self.input_dataset['throughput'].min():
             return None
        
         input_data = self.input_dataset.copy()
@@ -418,15 +415,16 @@ class DataGenerator:
         merged_data['throughput_input'] = merged_data['throughput_input'].apply(lambda x: round(x/5)*5)
         merged_data = merged_data.groupby(['throughput_input', 'res']).mean().reset_index()
 
-        # Filter the next lowest resource allocation
-        min_res = merged_data[merged_data['res'] >= resource_allocation]['res'].min()
-        filter_data = merged_data[merged_data['res'] == min_res]
-        # Now filter the next lowest input throughput
-        filter_data = filter_data[filter_data['throughput_input'] >= input_throughput]
-        filter_data = filter_data.sort_values(by=['throughput_input'], ascending=[True])
-        if len(filter_data) == 0:
+        # Now filter the input throughput
+        merged_data['percent_error_throughput'] = (merged_data['throughput_input'] - input_throughput).abs() / merged_data['throughput_input']
+        if resource_allocation is not None:
+            merged_data['percent_error_res'] = (merged_data['res'] - resource_allocation).abs() / merged_data['res']
+            merged_data = merged_data.sort_values(by=['percent_error_throughput', 'percent_error_res'], ascending=[True, True])
+        else:
+            merged_data = merged_data.sort_values(by=['percent_error_throughput'], ascending=[True])
+        if len(merged_data) == 0:
             return None
-        nearest_neighbor = filter_data.iloc[0]
+        nearest_neighbor = merged_data.iloc[0]
         
         return_df = {
             'packet_size': float(nearest_neighbor['packet_size_input']),

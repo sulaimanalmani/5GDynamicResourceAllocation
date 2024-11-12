@@ -8,13 +8,16 @@ The notebooks are designed to be run in a JupyterLab environment. To get started
 
 Clone the repository to your local machine:
 ```bash
+sudo apt-get -y install git
 git clone https://github.com/sulaimanalmani/5GDynamicResourceAllocation.git
 cd 5GDynamicResourceAllocation/
 ```
 
-Install the required python packages by running:
+Install the required python packages by running these one by one:
 ```bash
+sudo apt-get -y install pip
 pip install -r requirements.txt
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Download and extract the resource allocation dataset:
@@ -30,7 +33,7 @@ Launch JupyterLab:
 jupyter lab
 ```
 
-Once you have launched JupyterLab, you can access the interface by clicking the link in the terminal. The link will be in the following format:
+Once you have launched JupyterLab, it will open a new tab in your default browser. You can also access the interface by clicking the link in the terminal. The link will be in the following format:
 
 ```bash
 http://127.0.0.1:8000/?token=<token>
@@ -54,8 +57,8 @@ Please read the tips section below, and then proceed to open each of the noteboo
 
 ## Tips and Tricks
 
-> Press the Run button in the toolbar or use `Shift + Enter` to execute the code in a cell.
+> Press the Run button in the toolbar or use `Ctrl + Enter` to execute the code in a cell.
 
-> Double-clicking a markdown cell will reveal its code. Press `Shift + Enter` to execute the code in the cell and display the rendered markdown again.
+> Double-clicking a markdown cell will reveal its code. Press `Ctrl + Enter` to execute the code in the cell and display the rendered markdown again.
 
 > Use the sidebar on the left to navigate the file structure and explore the dataset.
