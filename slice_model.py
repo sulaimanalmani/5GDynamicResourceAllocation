@@ -37,7 +37,7 @@ class SliceModel:
 
         return vnf_output
 
-    def predict_throughput(self, res, input_throughput, differentiable=False, res_normalized=True):
+    def predict_throughput(self, res, input_throughput, differentiable=False, res_normalized=True, verbose=False):
         # Ensure 'res' is a list of resource values, denormalizing if needed
         if isinstance(res, torch.Tensor):
             res = res.clone().squeeze()
@@ -50,6 +50,8 @@ class SliceModel:
         predicted_output = None
         throughput = input_throughput
         
+        if verbose:
+            print(f"Input throughput: {input_throughput}")
         # Iterate through each VNF model and corresponding data generator
         for vnf_num, (vnf_model, data_gen) in enumerate(zip(self.vnf_models, self.data_gens)):
             # Prepare the input data for this VNF based on its resource allocation and throughput
@@ -62,8 +64,10 @@ class SliceModel:
 
             # Update throughput with the output of this VNF, used as input for the next VNF
             throughput = denormalized_output[0, 2]  # Selecting throughput value in the output
-            # print(f"Throughput after VNF {vnf_num}: {throughput}")
-        # print("--------------------------------")
+            if verbose:
+                print(f"Throughput after VNF {vnf_num}: {throughput}")
+        if verbose:
+            print("--------------------------------")
         # Return the final throughput, applying a cap if not differentiable
         return min(throughput.item(), input_throughput) if not differentiable else throughput
 

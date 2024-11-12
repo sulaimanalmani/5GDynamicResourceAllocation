@@ -88,8 +88,9 @@ class VNF_Model(nn.Module):
         
         # Output mean and std predictions
         mean = self.fc_mean(x)  # Mean output
-        log_std = self.fc_std(x) # Positive std output
-        std = torch.exp(log_std)
+        # log_std = self.fc_std(x) # Positive std output
+        # std = torch.exp(log_std)
+        std = nn.Softplus()(self.fc_std(x))
         return mean, std  # Return mean and std for uncertainty estimation
 
     # Negative Log Probability Loss Function #####################################################################

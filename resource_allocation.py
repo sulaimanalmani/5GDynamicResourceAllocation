@@ -21,13 +21,17 @@ class ResAllocModel(nn.Module):
         return self.activation(self.fc_layer(x))
 
 def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, init_weights=None, verbose=False):
+    if qos_threshold > input_throughput:
+        print("QoS threshold is greater than input throughput")
+        return None, None, None, None, time.time() - start_time
     # Initial solution
     res_alloc_init = get_initial_solution(slice_model, input_throughput, qos_threshold)
     init_weights = torch.tensor(np.log(res_alloc_init / (1 - res_alloc_init + 1e-6)))
+    print(nn.Sigmoid()(init_weights))
 
     # Initialize variables
     epochs, max_time, max_iterations = 50, 20, 50  # Increased max_time and max_iterations
-    penalty, penalty_step, min_upper_bound = 1.0, 0.1, 2.0  # Reduced penalty_step for finer adjustments
+    penalty, penalty_step, min_upper_bound = 1.0, 0.1, 3.0  # Reduced penalty_step for finer adjustments
     feasible_allocation, feasible_qos, upper_bound, lower_bound = None, None, None, None
     iteration, iterations_since_optimal = 0, 0
     start_time = time.time()
@@ -40,8 +44,9 @@ def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, 
         if verbose: print(f"Iteration {iteration}")
 
         # Perform inner loop (gradient descent) within primal-dual algorithm
-        res_alloc, qos, loss = inner_loop(model, optimizer, slice_model, input_throughput, qos_threshold, penalty, epochs, verbose)
+        res_alloc, qos, loss = inner_loop(model, optimizer, slice_model, input_throughput, qos_threshold, penalty, epochs, iteration, verbose)
         
+        print(f"QoS: {qos}, Loss: {loss}")
         # Update feasibility bounds
         feasible_allocation, feasible_qos, upper_bound, lower_bound, min_upper_bound, iterations_since_optimal = \
             update_bounds_if_feasible(
@@ -59,17 +64,17 @@ def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, 
 
 # Inner Loop for Gradient Descent #############################################################
 
-def inner_loop(model, optimizer, slice_model, input_throughput, qos_threshold, penalty, epochs, verbose):
+def inner_loop(model, optimizer, slice_model, input_throughput, qos_threshold, penalty, epochs, iteration,verbose):
     for epoch in range(epochs):
         optimizer.zero_grad()
         res_alloc = model(torch.ones((1, 1)).to(device))
         qos = slice_model.predict_throughput(res_alloc, input_throughput, differentiable=True)
         constraint_violation = qos_threshold - qos
         loss = calculate_loss(res_alloc, penalty, constraint_violation)
-        loss.backward(retain_graph=True)
+        loss.backward()
 
         # Update weights after the first epoch
-        if epoch >= 1:
+        if iteration > 1:
             optimizer.step()
 
         # Reduced gradient norm threshold for finer convergence
@@ -116,7 +121,8 @@ def adjust_penalty(penalty, qos, qos_threshold, penalty_step):
 # Stop Condition Check ########################################################################
 
 def stop_conditions_met(feasible_qos, qos_threshold, start_time, max_time, iteration, max_iterations):
-    return (abs(feasible_qos - qos_threshold) < 0.5 or  # Reduced QoS tolerance for finer results
+    # print("abs(feasible_qos - qos_threshold): ", abs(feasible_qos - qos_threshold), "time: ", time.time() - start_time, "iteration: ", iteration)
+    return (abs(feasible_qos - qos_threshold) < 0.5 or
             time.time() - start_time > max_time or 
             iteration > max_iterations)
 

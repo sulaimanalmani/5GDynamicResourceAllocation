@@ -373,12 +373,12 @@ class DataGenerator:
         # Plotting the surface plot with the interpolated grid of all data points
         fig = plt.figure(figsize=(10, 7))
         ax = fig.add_subplot(111, projection='3d')
-        surf_all = ax.plot_surface(res_grid_all, input_grid_all, output_grid_all, cmap='viridis')
+        surf_all = ax.plot_surface(input_grid_all, res_grid_all, output_grid_all, cmap='viridis')
         
         print(self.vnf_type)
         ax.set_title(f"3D Surface Plot for {self.vnf_type} Throughput")
-        ax.set_xlabel(self.resource_type)
-        ax.set_ylabel('Input Throughput (Mbps)')
+        ax.set_xlabel('Input Throughput (Mbps)')
+        ax.set_ylabel(self.resource_type)
         if pred == 0:
             ax.set_zlabel('Output Throughput (Mbps)')
         else:
