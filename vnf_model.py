@@ -195,10 +195,10 @@ class VNF_Model(nn.Module):
             # Backward pass and optimization
             loss.backward()
             optimizer.step()
-            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item()}, Val Loss: {val_loss.item()}', end='\r')
 
             # Save model and loss every 1000 epochs
             if (epoch + 1) % 1000 == 0 and save_model:
+                print(f'Epoch {epoch+1}, Loss: {loss.item()}, Val Loss: {val_loss.item()}', end='\n')
                 self.save_loss()
                 self.save_model()
 

@@ -27,7 +27,7 @@ def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, 
     # Initial solution
     res_alloc_init = get_initial_solution(slice_model, input_throughput, qos_threshold)
     init_weights = torch.tensor(np.log(res_alloc_init / (1 - res_alloc_init + 1e-6)))
-    print(nn.Sigmoid()(init_weights))
+    # print(nn.Sigmoid()(init_weights))
 
     # Initialize variables
     epochs, max_time, max_iterations = 50, 20, 50  # Increased max_time and max_iterations
@@ -46,7 +46,7 @@ def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, 
         # Perform inner loop (gradient descent) within primal-dual algorithm
         res_alloc, qos, loss = inner_loop(model, optimizer, slice_model, input_throughput, qos_threshold, penalty, epochs, iteration, verbose)
         
-        print(f"QoS: {qos}, Loss: {loss}")
+        # print(f"QoS: {qos}, Loss: {loss}")
         # Update feasibility bounds
         feasible_allocation, feasible_qos, upper_bound, lower_bound, min_upper_bound, iterations_since_optimal = \
             update_bounds_if_feasible(
@@ -60,6 +60,8 @@ def microopt(slice_model, input_throughput, qos_threshold, learning_rate=0.001, 
             if verbose: print("Optimization complete")
             break
 
+    if feasible_qos > qos_threshold:
+        feasible_qos = qos_threshold
     return feasible_allocation, feasible_qos, upper_bound, lower_bound, time.time() - start_time
 
 # Inner Loop for Gradient Descent #############################################################
