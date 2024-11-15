@@ -1,7 +1,7 @@
 ## Overview
-This repository contains jupyter notebooks demonstrating how perform dyanamic resource scaling for 5G network slices using the vNetRunner and [MicroOpt](https://arxiv.org/abs/2407.18342) frameworks.
+This repository contains jupyter notebooks demonstrating how to perform dynamic resource scaling for 5G network slices using the vNetRunner and [MicroOpt](https://arxiv.org/abs/2407.18342) frameworks.
 
-The notebooks are designed to be run in a JupyterLab environment. To get started, please follow the instructions below:
+The notebooks are designed to run in a JupyterLab environment. To get started, please follow the instructions below:
 
 ## Set up repository and environment
 
@@ -41,13 +41,13 @@ For more information on JupyterLab, you can refer to the [JupyterLab documentati
 
 ## Accessing the jupyter notebooks
 
-We have devided the session into three notebooks:
+We have divided this session into three notebooks:
 
 1. P1-WorkshopNotebook.ipynb: In this notebook, we will be exploring and visualizing our resource allocation dataset gathered from the in-lab 5G testbed.
 2. P2-WorkshopNotebook.ipynb: In this notebook, we will be using the datasets to train VNF models using the vNetRunner framework. Subsequently we will be using the trained VNF models to compose end-to-end slice models.
 3. P3-WorkshopNotebook.ipynb: In this notebook, we will be using the [MicroOpt](https://arxiv.org/abs/2407.18342) framework to perform dynamic resource scaling.
 
-Please read the tips section below, and then proceed to open each of the notebook in order in the JupyterLab (as shown below) interface and follow the instructions in the notebook to complete the exercises.
+Please read the tips section below, and then proceed to open each of the notebooks in order in the JupyterLab (as shown below) interface and follow the instructions in the notebook to complete the exercises.
 
 <p align="center" style="background-color: white;">
   <img src="images/jupyter_interface.png" alt="jupyter_interface" width="400"/>
