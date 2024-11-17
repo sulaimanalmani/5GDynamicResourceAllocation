@@ -11,11 +11,17 @@ git clone https://github.com/sulaimanalmani/5GDynamicResourceAllocation.git
 cd 5GDynamicResourceAllocation/
 ```
 
+Create a new python environment:
+```bash
+sudo apt-get -y install python3-pip
+sudo apt-get -y install python3-venv
+python3 -m venv ~/myenv
+source ~/myenv/bin/activate
+```
+
 Install the required python packages by running these one by one:
 ```bash
-sudo apt-get -y install pip
 pip install -r requirements.txt
-export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Download and extract the resource allocation dataset:

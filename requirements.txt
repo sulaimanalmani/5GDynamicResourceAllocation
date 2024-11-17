@@ -7,3 +7,4 @@ jupyterlab
 scipy
 plotly
 ipywidgets
+ipykernel
