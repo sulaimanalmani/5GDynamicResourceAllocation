@@ -29,15 +29,33 @@ Navigate to the repo:
 cd 5GDynamicResourceAllocation/
 ```
 
+Install the required python packages
+```bash
+sudo apt-get -y install python3-pip
+```
+
+Install the python virtual environment package:
+```bash
+sudo apt-get -y install python3-venv
+```
+
+---
+
+Create the environment:
+```bash
+python3 -m venv ~/myenv
+```
+
+Activate the environment:
+```bash
+source ~/myenv/bin/activate
+```
+
 Install the required python packages by running these one by one:
 ```bash
 pip install -r requirements.txt
 ```
 
-Add the local bin directory to the PATH variable:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
 ---
 
 ## Download and extract the resource allocation dataset:
