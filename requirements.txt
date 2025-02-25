@@ -8,3 +8,4 @@ scipy
 plotly
 ipywidgets
 ipykernel
+anywidget
